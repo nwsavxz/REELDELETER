@@ -1,0 +1,41 @@
+# XcodeGen spec. The GitHub Actions workflow runs `xcodegen generate` to turn this into
+# ReelDeleter.xcodeproj, because that file normally comes from Xcode, which needs a Mac.
+name: ReelDeleter
+
+options:
+  bundleIdPrefix: com.reeldeleter
+  deploymentTarget:
+    iOS: "17.0"
+
+settings:
+  base:
+    SWIFT_VERSION: "5.0"
+
+targets:
+  ReelDeleter:
+    type: application
+    platform: iOS
+    sources:
+      - path: ReelDeleter
+    info:
+      # Kept at the repo root, outside the sources folder, so it isn't also copied in as a resource.
+      path: Info.plist
+      properties:
+        CFBundleDisplayName: Reel Deleter
+        UILaunchScreen: {}
+        UISupportedInterfaceOrientations:
+          - UIInterfaceOrientationPortrait
+        CFBundleURLTypes:
+          - CFBundleURLName: reeldeleter
+            CFBundleURLSchemes:
+              - reeldeleter
+        NSCameraUsageDescription: Used only if you take a photo to post on Instagram.
+        NSMicrophoneUsageDescription: Used only if you record video to post on Instagram.
+        NSPhotoLibraryUsageDescription: Used only if you pick a photo or video to post on Instagram.
+    settings:
+      base:
+        # If Sideloadly says this identifier is taken, change the last part to anything else.
+        PRODUCT_BUNDLE_IDENTIFIER: com.reeldeleter.personal.x7k2p9
+        TARGETED_DEVICE_FAMILY: "1"
+        MARKETING_VERSION: "1.0"
+        CURRENT_PROJECT_VERSION: "1"
