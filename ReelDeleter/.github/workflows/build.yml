@@ -1,0 +1,71 @@
+name: Build unsigned IPA
+
+# Runs on GitHub's Macs. Produces ReelDeleter.ipa without signing; Sideloadly signs it
+# on your Windows PC with your Apple ID when you install it.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: macos-26
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install XcodeGen
+        run: brew install xcodegen
+
+      - name: Generate the Xcode project
+        run: xcodegen generate
+
+      - name: Show toolchain versions
+        run: |
+          xcodebuild -version
+          swift --version
+
+      - name: Build (unsigned)
+        run: |
+          set -o pipefail
+          xcodebuild \
+            -project ReelDeleter.xcodeproj \
+            -scheme ReelDeleter \
+            -configuration Release \
+            -sdk iphoneos \
+            -destination 'generic/platform=iOS' \
+            -derivedDataPath build \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY="" \
+            build 2>&1 | tee build.log
+
+      - name: Package the IPA
+        run: |
+          set -euo pipefail
+          APP=$(find build/Build/Products -maxdepth 2 -name '*.app' -type d | head -1)
+          echo "Packaging $APP"
+          rm -rf Payload
+          mkdir Payload
+          cp -R "$APP" Payload/
+          zip -qr ReelDeleter.ipa Payload
+          ls -lh ReelDeleter.ipa
+
+      - name: Upload the IPA
+        uses: actions/upload-artifact@v4
+        with:
+          name: ReelDeleter-ipa
+          path: ReelDeleter.ipa
+          retention-days: 30
+
+      # If anything above failed, put the compiler errors at the top of the run's summary page
+      # so they are easy to copy.
+      - name: Summarise errors
+        if: failure()
+        run: |
+          {
+            echo '### Compiler errors'
+            echo '```'
+            grep -E 'error:' build.log | sort -u | head -40 || true
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
